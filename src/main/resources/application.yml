@@ -1,0 +1,11 @@
+server:
+  port: 8282
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/events
+    username: postgres
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true

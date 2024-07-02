@@ -1,7 +1,8 @@
 package az.example.eventsapp.entity;
 
 
-import az.example.events.enums.Role;
+
+import az.example.eventsapp.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
