@@ -1,5 +1,6 @@
 package az.example.eventsapp.entity;
 
+import az.example.eventsapp.enums.City;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,7 +16,9 @@ public class VenueEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private City name;
     private String address;
     private int capacity;
 }
