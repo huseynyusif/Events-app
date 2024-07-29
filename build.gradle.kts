@@ -29,11 +29,14 @@ dependencies {
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	//security
-//    implementation("org.springframework.boot:spring-boot-starter-security:3.2.5")
-//    implementation("org.springframework.security:spring-security-core:6.2.4")
+    implementation("org.springframework.boot:spring-boot-starter-security:3.2.5")
+    implementation("org.springframework.security:spring-security-core:6.2.4")
+	implementation("org.springframework.security:spring-security-config:6.2.4")
 	//mail sender
-	implementation("org.springframework.boot:spring-boot-starter-mail")
-
+	implementation("org.springframework.boot:spring-boot-starter-mail:3.3.2")
+	//pdf
+	implementation("com.itextpdf:itext7-core:7.1.14")
+	implementation("org.apache.commons:commons-io:1.3.2")
 	//testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.mockito:mockito-junit-jupiter:3.11.2")
@@ -47,6 +50,22 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 	//validation
 	implementation("org.springframework.boot:spring-boot-starter-validation:3.2.4")
+	//jwt
+	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+	//JsonB
+	//implementation("com.vladmihalcea:hibernate-types-52:2.21.1")
+	//Hibernate
+	implementation("org.hibernate:hibernate-core:6.0.0.Final")
+
+	//persistence
+	//implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
+
+	// rabbitMQ
+//	implementation("org.springframework.boot:spring-boot-starter-amqp:1.4.0.RELEASE")
+
+
 }
 
 tasks.withType<Test> {
