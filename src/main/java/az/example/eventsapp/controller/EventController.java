@@ -27,8 +27,8 @@ public class EventController {
     private final EventService eventService;
 
     @GetMapping("/hello")
-    public Map<String,String> hello(){
-        return Collections.singletonMap("hello","world");
+    public String hello(){
+        return "Firuz";
     }
 
     @PostMapping
