@@ -14,16 +14,12 @@ public class TicketEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String seatNumber;
+
     private int quantity;
 
     @ManyToOne
     @JoinColumn(name = "event_id", referencedColumnName = "id")
     private EventEntity event;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private UserEntity attendee;
 
     @Column(nullable = false)
     private String type; // example vip/ga
