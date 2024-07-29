@@ -1,13 +1,14 @@
 package az.example.eventsapp.entity;
 
-
-
 import az.example.eventsapp.enums.Role;
+import az.example.eventsapp.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -21,6 +22,8 @@ public class UserEntity {
     private Long id;
     private String name;
     private String surname;
+
+    @Column(nullable = false,unique = true)
     private String telephoneNumber;
 
     @Column(nullable = false,unique = true)
@@ -33,11 +36,11 @@ public class UserEntity {
     private String password;
 
     @Enumerated(EnumType.STRING)
+    private UserStatus status;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-
-    @OneToMany(mappedBy = "attendee")
-    private Set<TicketEntity> tickets;
 
     @OneToMany(mappedBy = "user")
     private Set<ReviewEntity> reviews;
@@ -45,12 +48,21 @@ public class UserEntity {
     @OneToMany(mappedBy = "user")
     private Set<PaymentEntity> payments;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_favorite_events",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "event_id"))
-    private Set<EventEntity> favoriteEvents;
+    @ManyToMany(mappedBy = "favoritedBy")
+    private Set<EventEntity> favoriteEvents = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserEntity that = (UserEntity) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
     @OneToMany(mappedBy = "organizer")
     private Set<EventEntity> organizedEvents;

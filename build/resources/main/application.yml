@@ -2,9 +2,9 @@ server:
   port: ${PORT}
 spring:
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: jdbc:postgresql://dpg-cqjs6nggph6c739dfp8g-a.oregon-postgres.render.com/events_app_db_v9o5?user=events_app_db_v9o5_user&password=z481HbaKEmcDv465a7lPgly2WeCNHZFn
+    username: events_app_db_v9o5_user
+    password: z481HbaKEmcDv465a7lPgly2WeCNHZFn
 
   jpa:
     hibernate:
