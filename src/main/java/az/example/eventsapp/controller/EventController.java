@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,8 +28,8 @@ public class EventController {
     private final EventService eventService;
 
     @GetMapping("/hello")
-    public String hello(){
-        return "Firuz";
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("Firuz");
     }
 
     @PostMapping
