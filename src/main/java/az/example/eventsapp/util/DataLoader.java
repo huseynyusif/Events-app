@@ -11,101 +11,96 @@ import az.example.eventsapp.repository.EventRepository;
 import az.example.eventsapp.repository.UserRepository;
 import az.example.eventsapp.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
 public class DataLoader implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
-    private final EventRepository eventRepository;
-    private final VenueRepository venueRepository;
-    private final UserRepository userRepository;
-
 
     @Override
     public void run(String... args) throws Exception {
         loadCategories();
-        loadVenues();
-        loadUsers();
-        loadEvents();
     }
 
     private void loadCategories() {
-        CategoryEntity festival = new CategoryEntity();
-        festival.setName("Festival");
-        festival.setDescription("Music and cultural festivals");
+        if (categoryRepository.count() == 0) {
+            List<CategoryEntity> categories = new ArrayList<>();
 
-        CategoryEntity holidays = new CategoryEntity();
-        holidays.setName("Holidays");
-        holidays.setDescription("Holiday celebrations and events");
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Camping",
+                            "ru", "Кемпинг",
+                            "az", "Düşərgə"))
+                    .description(Map.of(
+                            "en", "Enjoy nature and outdoor activities with our camping events.",
+                            "ru", "Наслаждайтесь природой и активным отдыхом с нашими кемпинг-событиями.",
+                            "az", "Təbiətdən və açıq hava fəaliyyətlərindən zövq alın bizim düşərgə tədbirlərimizlə."))
+                    .build());
 
-        CategoryEntity meeting = new CategoryEntity();
-        meeting.setName("Meeting");
-        meeting.setDescription("Business and social meetings");
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Conferences",
+                            "ru", "Конференции",
+                            "az", "Konfranslar"))
+                    .description(Map.of(
+                            "en", "Attend insightful and professional conferences on various topics.",
+                            "ru", "Посещайте познавательные и профессиональные конференции по различным темам.",
+                            "az", "Müxtəlif mövzularda ətraflı və peşəkar konfranslara qatılın."))
+                    .build());
 
-        CategoryEntity camping = new CategoryEntity();
-        camping.setName("Camping");
-        camping.setDescription("Outdoor camping and adventure activities");
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Summer parties",
+                            "ru", "Летние вечеринки",
+                            "az", "Yay partiləri"))
+                    .description(Map.of(
+                            "en", "Celebrate the summer season with lively parties and social events.",
+                            "ru", "Отпразднуйте летний сезон с живыми вечеринками и социальными мероприятиями.",
+                            "az", "Yay mövsümünü canlı partilər və sosial tədbirlərlə qeyd edin."))
+                    .build());
 
-        categoryRepository.saveAll(Arrays.asList(festival, holidays, meeting, camping));
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Concert",
+                            "ru", "Концерт",
+                            "az", "Konsert"))
+                    .description(Map.of(
+                            "en", "Enjoy music and performances from various artists and bands.",
+                            "ru", "Наслаждайтесь музыкой и выступлениями различных артистов и групп.",
+                            "az", "Müxtəlif ifaçılardan və qruplardan musiqi və performanslardan zövq alın."))
+                    .build());
+
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Hiking",
+                            "ru", "Пеший туризм",
+                            "az", "Piyada yürüş"))
+                    .description(Map.of(
+                            "en", "Explore nature trails and enjoy adventurous hikes.",
+                            "ru", "Исследуйте природные тропы и наслаждайтесь приключенческими походами.",
+                            "az", "Təbiət yollarını kəşf edin və macəra dolu yürüşlərin dadını çıxarın."))
+                    .build());
+
+            categories.add(CategoryEntity.builder()
+                    .name(Map.of(
+                            "en", "Another",
+                            "ru", "Другой",
+                            "az", "Digər"))
+                    .description(Map.of(
+                            "en", "Discover various other events and activities.",
+                            "ru", "Откройте для себя различные другие события и мероприятия.",
+                            "az", "Müxtəlif digər tədbirləri və fəaliyyətləri kəşf edin."))
+                    .build());
+
+            categoryRepository.saveAll(categories);
+        }
+        }
     }
-
-    private void loadVenues() {
-        VenueEntity venue1 = new VenueEntity();
-        venue1.setName("City Park");
-        venue1.setAddress("Neftciler ave");
-        venue1.setCapacity(5000);
-
-        VenueEntity venue2 = new VenueEntity();
-        venue2.setName("Convention Center");
-        venue2.setAddress("Nizami ave");
-        venue2.setCapacity(2000);
-
-        venueRepository.saveAll(Arrays.asList(venue1, venue2));
-    }
-
-    private void loadUsers() {
-        UserEntity organizer = new UserEntity();
-        organizer.setName("Nikola");
-        organizer.setSurname("Tesla");
-        organizer.setTelephoneNumber("0505005050");
-        organizer.setEmail("nikola@example.com");
-        organizer.setUsername("nikola");
-        organizer.setPassword("password");
-        organizer.setRole(Role.ORGANIZER);
-
-        UserEntity attendee = new UserEntity();
-        attendee.setName("Isaac");
-        attendee.setSurname("Newton");
-        attendee.setTelephoneNumber("0555555555");
-        attendee.setEmail("isaac@example.com");
-        attendee.setUsername("isaac");
-        attendee.setPassword("password");
-        attendee.setRole(Role.ATTENDEE);
-
-        userRepository.saveAll(Arrays.asList(organizer, attendee));
-    }
-
-    private void loadEvents() {
-        UserEntity organizer = userRepository.findByUsername("nikola");
-        CategoryEntity festivalCategory = categoryRepository.findByName("Festival");
-        VenueEntity venue1 = venueRepository.findByName("City Park");
-
-        EventEntity event1 = new EventEntity();
-        event1.setName("Summer Music Festival");
-        event1.setDescription("A fun-filled music festival featuring top artists.");
-        event1.setStartDate(LocalDateTime.now().plusDays(10));
-        event1.setEndDate(LocalDateTime.now().plusDays(12));
-        event1.setCategory(festivalCategory);
-        event1.setVenue(venue1);
-        event1.setOrganizer(organizer);
-        event1.setStatus(EventStatus.ACTIVE);
-
-        eventRepository.save(event1);
-    }
-}

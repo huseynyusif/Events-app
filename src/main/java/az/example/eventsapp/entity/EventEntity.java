@@ -2,13 +2,19 @@ package az.example.eventsapp.entity;
 
 
 import az.example.eventsapp.enums.EventStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Entity
 @Table(name = "events")
@@ -27,11 +33,14 @@ public class EventEntity {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
+    @CreationTimestamp
+    private LocalDateTime createdDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EventStatus status;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     private List<ImageEntity> images;
 
     @ManyToOne
@@ -46,6 +55,32 @@ public class EventEntity {
     @JoinColumn(name = "organizer_id", referencedColumnName = "id")
     private UserEntity organizer;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     private List<TicketEntity> tickets;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_favorite_events",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<UserEntity> favoritedBy = new HashSet<>();
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EventEntity that = (EventEntity) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    public boolean isActive() {
+        return status == EventStatus.ACTIVE && LocalDateTime.now().isBefore(endDate);
+    }
 }
