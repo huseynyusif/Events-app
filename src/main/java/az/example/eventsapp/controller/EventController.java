@@ -29,7 +29,7 @@ public class EventController {
 
     @GetMapping("/hello")
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Firuz");
+        return ResponseEntity.ok("Hello Firuz");
     }
 
     @PostMapping
