@@ -49,3 +49,9 @@ spring:
 
 file:
   upload-dir: /path/to/upload/directory
+
+aws:
+  accessKeyId: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_KEY}
+  s3:
+    bucketName: ${AWS_S3_BUCKET_NAME}
