@@ -2,9 +2,9 @@ server:
   port: ${PORT}
 spring:
   datasource:
-    url: jdbc:postgresql://dpg-cqjs6nggph6c739dfp8g-a.oregon-postgres.render.com/events_app_db_v9o5?user=events_app_db_v9o5_user&password=z481HbaKEmcDv465a7lPgly2WeCNHZFn
-    username: events_app_db_v9o5_user
-    password: z481HbaKEmcDv465a7lPgly2WeCNHZFn
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
 
   jpa:
     hibernate:
@@ -49,3 +49,9 @@ spring:
 
 file:
   upload-dir: /path/to/upload/directory
+
+aws:
+  accessKeyId: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_KEY}
+  s3:
+    bucketName: ${AWS_S3_BUCKET_NAME}
