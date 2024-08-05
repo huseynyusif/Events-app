@@ -17,7 +17,6 @@ public class JwtUtil {
     private SecretKey secretKey;
 
     public JwtUtil() {
-        // 512 bitlik bir anahtar oluşturun
         secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
     }
 

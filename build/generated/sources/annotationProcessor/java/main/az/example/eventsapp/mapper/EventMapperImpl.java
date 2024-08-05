@@ -6,9 +6,10 @@ import az.example.eventsapp.entity.ReviewEntity;
 import az.example.eventsapp.entity.TicketEntity;
 import az.example.eventsapp.entity.UserEntity;
 import az.example.eventsapp.entity.VenueEntity;
+import az.example.eventsapp.enums.EventStatus;
+import az.example.eventsapp.enums.UserStatus;
 import az.example.eventsapp.request.EventRequest;
 import az.example.eventsapp.request.TicketRequest;
-import az.example.eventsapp.request.VenueRequest;
 import az.example.eventsapp.response.CategoryResponse;
 import az.example.eventsapp.response.EventCardResponse;
 import az.example.eventsapp.response.EventResponse;
@@ -23,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2024-07-29T01:52:06+0400",
+    date = "2024-08-01T21:11:35+0400",
     comments = "version: 1.5.5.Final, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.8.jar, environment: Java 17.0.8 (Oracle Corporation)"
 )
 @Component
@@ -56,19 +57,26 @@ public class EventMapperImpl implements EventMapper {
     }
 
     @Override
-    public EventEntity toEventEntity(EventRequest eventRequest) {
-        if ( eventRequest == null ) {
+    public EventEntity toEventEntity(EventRequest eventRequest, UserEntity organizer, CategoryEntity category, VenueEntity venue) {
+        if ( eventRequest == null && organizer == null && category == null && venue == null ) {
             return null;
         }
 
         EventEntity eventEntity = new EventEntity();
 
-        eventEntity.setName( eventRequest.getName() );
-        eventEntity.setDescription( eventRequest.getDescription() );
-        eventEntity.setStartDate( eventRequest.getStartDate() );
-        eventEntity.setEndDate( eventRequest.getEndDate() );
-        eventEntity.setVenue( venueRequestToVenueEntity( eventRequest.getVenue() ) );
-        eventEntity.setTickets( ticketRequestListToTicketEntityList( eventRequest.getTickets() ) );
+        if ( eventRequest != null ) {
+            eventEntity.setName( eventRequest.getName() );
+            eventEntity.setDescription( eventRequest.getDescription() );
+            eventEntity.setStartDate( eventRequest.getStartDate() );
+            eventEntity.setEndDate( eventRequest.getEndDate() );
+            eventEntity.setTickets( ticketRequestListToTicketEntityList( eventRequest.getTickets() ) );
+        }
+        if ( organizer != null ) {
+            eventEntity.setOrganizer( organizer );
+            eventEntity.setStatus( userStatusToEventStatus( organizer.getStatus() ) );
+        }
+        eventEntity.setCategory( category );
+        eventEntity.setVenue( venue );
 
         return eventEntity;
     }
@@ -166,20 +174,22 @@ public class EventMapperImpl implements EventMapper {
         return list1;
     }
 
-    protected VenueEntity venueRequestToVenueEntity(VenueRequest venueRequest) {
-        if ( venueRequest == null ) {
+    protected EventStatus userStatusToEventStatus(UserStatus userStatus) {
+        if ( userStatus == null ) {
             return null;
         }
 
-        VenueEntity venueEntity = new VenueEntity();
+        EventStatus eventStatus;
 
-        venueEntity.setName( venueRequest.getName() );
-        venueEntity.setAddress( venueRequest.getAddress() );
-        if ( venueRequest.getCapacity() != null ) {
-            venueEntity.setCapacity( venueRequest.getCapacity() );
+        switch ( userStatus ) {
+            case ACTIVE: eventStatus = EventStatus.ACTIVE;
+            break;
+            case INACTIVE: eventStatus = EventStatus.INACTIVE;
+            break;
+            default: throw new IllegalArgumentException( "Unexpected enum constant: " + userStatus );
         }
 
-        return venueEntity;
+        return eventStatus;
     }
 
     protected TicketEntity ticketRequestToTicketEntity(TicketRequest ticketRequest) {

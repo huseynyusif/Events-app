@@ -1,9 +1,6 @@
 package az.example.eventsapp.mapper;
 
-import az.example.eventsapp.entity.EventEntity;
-import az.example.eventsapp.entity.ImageEntity;
-import az.example.eventsapp.entity.ReviewEntity;
-import az.example.eventsapp.entity.TicketEntity;
+import az.example.eventsapp.entity.*;
 import az.example.eventsapp.request.EventRequest;
 import az.example.eventsapp.response.EventCardResponse;
 import az.example.eventsapp.response.EventResponse;
@@ -25,7 +22,15 @@ public interface EventMapper {
     })
     EventResponse toEventResponse(EventEntity event, Set<ReviewEntity> reviews);
 
-    EventEntity toEventEntity(EventRequest eventRequest);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(source = "eventRequest.name", target = "name")
+    @Mapping(source = "eventRequest.description", target = "description")
+    @Mapping(source = "eventRequest.startDate", target = "startDate")
+    @Mapping(source = "eventRequest.endDate", target = "endDate")
+    @Mapping(source = "category", target = "category")
+    @Mapping(source = "venue", target = "venue")
+    @Mapping(source = "organizer", target = "organizer")
+    EventEntity toEventEntity(EventRequest eventRequest, UserEntity organizer, CategoryEntity category, VenueEntity venue);
 
     @Mapping(target = "price", source = "tickets", qualifiedByName = "mapPrice")
     @Mapping(target = "imageUrl", source = "images", qualifiedByName = "mapImageUrl")
