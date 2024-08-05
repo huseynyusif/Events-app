@@ -4,6 +4,8 @@ import az.example.eventsapp.entity.*;
 import az.example.eventsapp.enums.EventStatus;
 import az.example.eventsapp.exception.*;
 import az.example.eventsapp.mapper.EventMapper;
+import az.example.eventsapp.mapper.TicketMapper;
+import az.example.eventsapp.mapper.VenueMapper;
 import az.example.eventsapp.repository.*;
 import az.example.eventsapp.request.EventRequest;
 import az.example.eventsapp.request.TicketRequest;
@@ -14,8 +16,10 @@ import az.example.eventsapp.specification.EventSpecification;
 import az.example.eventsapp.util.EmailHelper;
 import az.example.eventsapp.util.ImageUploadService;
 import az.example.eventsapp.util.PdfService;
+import az.example.eventsapp.util.S3Service;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -26,124 +30,131 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EventService {
-    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
-
     private final EventRepository eventRepository;
     private final CategoryRepository categoryRepository;
     private final VenueRepository venueRepository;
+    private final VenueMapper venueMapper;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
     private final TicketRepository ticketRepository;
+    private final TicketMapper ticketMapper;
     private final UserTicketRepository userTicketRepository;
     private final EmailHelper emailService;
     private final PdfService pdfService;
     private final ImageRepository imageRepository;
     private final ImageUploadService imageUploadService;
     private final ReviewRepository reviewRepository;
-
+    private final S3Service s3Service;
+    private final PaymentService paymentService;
 
 
     public EventResponse createEvent(EventRequest eventRequest, String username, List<MultipartFile> images) {
-        logger.info("Creating event for user: {}", username);
+        log.info("Creating event for user: {}", username);
 
         UserEntity organizer = userRepository.findByUsername(username)
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", username);
+                    return new UserNotFoundException();
+                });
 
-        logger.info("Found organizer: {}", organizer.getId());
+        log.info("Found organizer: {}", organizer.getId());
 
         CategoryEntity category = categoryRepository.findById(eventRequest.getCategoryId())
-                .orElseThrow(CategoryNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("Category not found: {}", eventRequest.getCategoryId());
+                    return new CategoryNotFoundException();
+                });
 
-        logger.info("Found category: {}", category.getId());
+        log.info("Found category: {}", category.getId());
 
-        VenueEntity venue = new VenueEntity();
-        venue.setName(eventRequest.getVenue().getName());
-        venue.setAddress(eventRequest.getVenue().getAddress());
-        venue.setCapacity(eventRequest.getVenue().getCapacity());
+        VenueEntity venue = venueMapper.toVenueEntity(eventRequest.getVenue());
         venue = venueRepository.save(venue);
+        log.info("Saved venue: {}", venue.getId());
 
-        logger.info("Saved venue: {}", venue.getId());
-
-        EventEntity event = new EventEntity();
-        event.setCategory(category);
-        event.setName(eventRequest.getName());
-        event.setDescription(eventRequest.getDescription());
-        event.setStartDate(eventRequest.getStartDate());
-        event.setEndDate(eventRequest.getEndDate());
+        EventEntity event = eventMapper.toEventEntity(eventRequest, organizer, category, venue);
         event.setStatus(EventStatus.PENDING);
-        event.setVenue(venue);
-        event.setOrganizer(organizer);
 
-        List<TicketEntity> tickets = eventRequest.getTickets().stream().map(ticketRequest -> {
-            TicketEntity ticket = new TicketEntity();
-            ticket.setQuantity(ticketRequest.getQuantity());
-            ticket.setType(ticketRequest.getType());
-            ticket.setPrice(ticketRequest.getPrice());
-            ticket.setEvent(event);
-            return ticket;
-        }).collect(Collectors.toList());
+        List<TicketEntity> tickets = ticketMapper.toTicketEntities(eventRequest.getTickets(), event);
 
         event.setTickets(tickets);
 
         List<ImageEntity> imageEntities = images.stream().map(file -> {
-            try {
-                String fileName = imageUploadService.uploadFile(file);
-                ImageEntity imageEntity = new ImageEntity();
-                imageEntity.setUrl(fileName);
-                imageEntity.setDescription(file.getOriginalFilename());
-                imageEntity.setEvent(event);
-                return imageEntity;
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
-            }
+            String fileName = s3Service.uploadFile(file);
+            ImageEntity imageEntity = new ImageEntity();
+            imageEntity.setUrl(fileName);
+            imageEntity.setDescription(file.getOriginalFilename());
+            imageEntity.setEvent(event);
+            return imageEntity;
         }).collect(Collectors.toList());
 
         event.setImages(imageEntities);
 
         EventEntity savedEvent = eventRepository.save(event);
-        logger.info("Saved event: {}", savedEvent.getId());
+        log.info("Saved event: {}", savedEvent.getId());
 
         ticketRepository.saveAll(tickets);
-        logger.info("Saved tickets for event: {}", savedEvent.getId());
+        log.info("Saved tickets for event: {}", savedEvent.getId());
 
         imageRepository.saveAll(imageEntities);
-        logger.info("Saved images for event: {}", savedEvent.getId());
+        log.info("Saved images for event: {}", savedEvent.getId());
 
         return eventMapper.toEventResponse(savedEvent, null);
     }
 
     @Transactional
     public List<String> purchaseTicket(Long eventId, String type, int quantityToPurchase, String username) {
-        EventEntity event = eventRepository.findById(eventId)
-                .orElseThrow(EventNotFoundException::new);
+        log.info("Purchasing {} tickets of type {} for event ID: {} by user: {}", quantityToPurchase, type, eventId, username);
 
-        if (!event.isActive()) {
-            throw new IllegalArgumentException("Cannot purchase tickets for an inactive event");
+        // Fetch the event and user entities
+        EventEntity event = eventRepository.findById(eventId)
+                .orElseThrow(() -> {
+                    log.error("Event not found with ID: {}", eventId);
+                    return new EventNotFoundException();
+                });
+
+        if (event.getStatus() != EventStatus.ACTIVE) {
+            log.warn("Attempt to purchase tickets for an inactive event: {}", eventId);
+            throw new TicketInactiveException();
         }
 
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", username);
+                    return new UserNotFoundException();
+                });
 
+        // Find the ticket type for the event
         TicketEntity ticket = event.getTickets().stream()
                 .filter(t -> t.getType().equals(type))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Ticket type not found for this event"));
+                .orElseThrow(() -> {
+                    log.error("Ticket type not found: {} for event: {}", type, eventId);
+                    return new TicketTypeException();
+                });
 
         if (ticket.getQuantity() < quantityToPurchase) {
+            log.warn("Insufficient tickets available for type {}. Available: {}, Requested: {}", type, ticket.getQuantity(), quantityToPurchase);
             throw new InsufficientTicketsException();
         }
 
+        // Calculate the total amount for the tickets
+        double totalAmount = ticket.getPrice() * quantityToPurchase;
+
+        // Process the payment before finalizing the ticket purchase
+        PaymentEntity payment = paymentService.processPayment(user.getId(), ticket.getId(), totalAmount, "Credit Card");
+
+        //Continue with ticket purchase after payment is successful
         List<String> customerCodes = new ArrayList<>();
         List<byte[]> pdfAttachments = new ArrayList<>();
         for (int i = 0; i < quantityToPurchase; i++) {
-            String customerCode = generateUniqueCustomerCode();
+            String customerCode = generateUniqueCustomerCode() + event.getOrganizer().getId();
             customerCodes.add(customerCode);
 
             UserTicketEntity userTicket = new UserTicketEntity();
@@ -162,6 +173,7 @@ public class EventService {
         // Reduce the quantity of tickets
         ticket.setQuantity(ticket.getQuantity() - quantityToPurchase);
         ticketRepository.save(ticket);
+        log.info("Ticket purchase completed. Remaining tickets for type {}: {}", type, ticket.getQuantity());
 
         // Send confirmation email
         String subject = "Ticket Purchase Confirmation";
@@ -171,9 +183,11 @@ public class EventService {
                 "Thank you for your purchase!";
         try {
             emailService.sendTicketConfirmationEmail(user.getEmail(), subject, body, pdfAttachments);
+            log.info("Confirmation email sent to: {}", user.getEmail());
         } catch (MessagingException e) {
-            e.printStackTrace();
+            log.error("Failed to send confirmation email to: {}", user.getEmail(), e);
         }
+
         return customerCodes;
     }
 
@@ -184,7 +198,9 @@ public class EventService {
 
 
     public List<EventCardResponse> getEventCards() {
-        return eventRepository.findAll().stream()
+        log.info("Fetching all active event cards");
+
+        List<EventCardResponse> eventCards = eventRepository.findAll().stream()
                 .filter(event -> event.getStatus() == EventStatus.ACTIVE)
                 .map(event -> {
                     EventCardResponse card = new EventCardResponse();
@@ -203,25 +219,37 @@ public class EventService {
                     }
                     return card;
                 }).collect(Collectors.toList());
+
+        log.info("Found {} active events", eventCards.size());
+        return eventCards;
     }
 
     public EventResponse getEventDetails(Long eventId) {
+        log.info("Fetching event details for event ID: {}", eventId);
+
         EventEntity eventEntity = eventRepository.findById(eventId)
                 .filter(event -> event.getStatus() == EventStatus.ACTIVE)
-                .orElseThrow(EventNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("Event not found with ID: {}", eventId);
+                    return new EventNotFoundException();
+                });
+
         var reviews = reviewRepository.findByEventId(eventId);
         List<String> imageUrls = eventEntity.getImages().stream()
                 .map(ImageEntity::getUrl)
                 .collect(Collectors.toList());
 
-        EventResponse eventResponse = eventMapper.toEventResponse(eventEntity,reviews);
+        EventResponse eventResponse = eventMapper.toEventResponse(eventEntity, reviews);
         eventResponse.setImages(imageUrls);
 
+        log.info("Returning details for event ID: {}", eventId);
         return eventResponse;
     }
 
 
     public Page<EventCardResponse> filterEvents(Pageable pageable, EventCriteria eventCriteria) {
+        log.info("Filtering events with criteria: {}", eventCriteria);
+
         Specification<EventEntity> spec = EventSpecification.buildSpecification(
                 eventCriteria.getName(),
                 eventCriteria.getStartDateFrom(),
@@ -233,8 +261,10 @@ public class EventService {
 
         // Apply sorting based on criteria
         if ("starRating".equals(eventCriteria.getSortBy())) {
+            log.info("Applying star rating sorting");
             spec = spec.and(EventSpecification.isSortedByStarRating());
         } else if ("latestEvents".equals(eventCriteria.getSortBy())) {
+            log.info("Applying latest events sorting");
             spec = spec.and(EventSpecification.isLatestEvents());
         }
 
@@ -243,11 +273,13 @@ public class EventService {
                 .map(eventMapper::toEventCardResponse)
                 .collect(Collectors.toList());
 
+        log.info("Filtered events found: {}", events.getTotalElements());
         return new PageImpl<>(eventCardResponses, pageable, events.getTotalElements());
     }
 
 
-    public List<EventCardResponse> getEventsSortedByStarRating(){
+    public List<EventCardResponse> getEventsSortedByStarRating() {
+        log.info("Fetching events sorted by star rating");
         List<EventEntity> events = eventRepository.findAll();
 
         events.sort(Comparator.comparingDouble(event -> calculateStarRatingAverage(event.getId())));
@@ -272,6 +304,7 @@ public class EventService {
                 })
                 .toList();
 
+        log.info("Found {} events sorted by star rating", eventCards.size());
         return eventCards;
     }
 
@@ -296,7 +329,7 @@ public class EventService {
                     card.setId(event.getId());
                     card.setName(event.getName());
                     card.setStartDate(event.getStartDate());
-                    // the event has a list of tickets and we are taking the first one for the price
+                    // the event has a list of tickets & we are taking the first one for the price
                     if (!event.getTickets().isEmpty()) {
                         card.setPrice(event.getTickets().get(0).getPrice());
                     }
@@ -334,50 +367,60 @@ public class EventService {
 
 
     public EventResponse updateEvent(Long eventId, EventRequest eventRequest, String username, List<MultipartFile> images) {
-        logger.info("Updating event with ID: {} for user: {}", eventId,username);
+        log.info("Updating event with ID: {} for user: {}", eventId, username);
 
         UserEntity organizer = userRepository.findByUsername(username)
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", username);
+                    return new UserNotFoundException();
+                });
 
         EventEntity event = eventRepository.findById(eventId)
-                .orElseThrow(EventNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.error("Event not found with ID: {}", eventId);
+                    return new EventNotFoundException();
+                });
 
         if (!event.getOrganizer().equals(organizer)) {
+            log.warn("Unauthorized update attempt by user: {} for event: {}", username, eventId);
             throw new UnauthorizedActionException();
         }
 
-        if (eventRequest.getCategoryId() != null){
+        if (eventRequest.getCategoryId() != null) {
             CategoryEntity category = categoryRepository.findById(eventRequest.getCategoryId())
-                    .orElseThrow(CategoryNotFoundException::new);
+                    .orElseThrow(() -> {
+                        log.error("Category not found: {}", eventRequest.getCategoryId());
+                        return new CategoryNotFoundException();
+                    });
             event.setCategory(category);
         }
 
-        if (eventRequest.getName() != null){
+        if (eventRequest.getName() != null) {
             event.setName(eventRequest.getName());
         }
 
-        if (eventRequest.getDescription() != null){
+        if (eventRequest.getDescription() != null) {
             event.setDescription(eventRequest.getDescription());
         }
 
-        if (eventRequest.getStartDate() != null){
+        if (eventRequest.getStartDate() != null) {
             event.setStartDate(eventRequest.getStartDate());
         }
 
-        if (eventRequest.getEndDate() != null){
+        if (eventRequest.getEndDate() != null) {
             event.setEndDate(eventRequest.getEndDate());
         }
 
-        if (eventRequest.getVenue() != null){
+        if (eventRequest.getVenue() != null) {
             VenueEntity venue = event.getVenue();
 
-            if (eventRequest.getVenue().getName() != null){
+            if (eventRequest.getVenue().getName() != null) {
                 venue.setName(eventRequest.getVenue().getName());
             }
-            if (eventRequest.getVenue().getAddress() != null){
+            if (eventRequest.getVenue().getAddress() != null) {
                 venue.setAddress(eventRequest.getVenue().getAddress());
             }
-            if (eventRequest.getVenue().getCapacity() != null){
+            if (eventRequest.getVenue().getCapacity() != null) {
                 venue.setCapacity(eventRequest.getVenue().getCapacity());
             }
             venueRepository.save(venue);
@@ -411,24 +454,21 @@ public class EventService {
 
         if (images != null && !images.isEmpty()) {
             List<ImageEntity> imageEntities = images.stream().map(file -> {
-                try {
-                    String fileName = imageUploadService.uploadFile(file);
-                    ImageEntity imageEntity = new ImageEntity();
-                    imageEntity.setUrl(fileName);
-                    imageEntity.setDescription(file.getOriginalFilename());
-                    imageEntity.setEvent(event);
-                    return imageEntity;
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
-                }
+                String fileName = s3Service.uploadFile(file);
+                ImageEntity imageEntity = new ImageEntity();
+                imageEntity.setUrl(fileName);
+                imageEntity.setDescription(file.getOriginalFilename());
+                imageEntity.setEvent(event);
+                return imageEntity;
             }).collect(Collectors.toList());
 
             imageRepository.saveAll(imageEntities);
             event.setImages(imageEntities);
+            log.info("Updated images for event: {}", eventId);
         }
 
         EventEntity updatedEvent = eventRepository.save(event);
-        logger.info("Updated event: {}", updatedEvent.getId());
+        log.info("Updated event: {}", updatedEvent.getId());
 
         return eventMapper.toEventResponse(updatedEvent, null);
     }
