@@ -24,55 +24,27 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final AuthenticationManager authenticationManager;
-
     private final UserService userService;
 
-    private final JwtUtil jwtUtil;
-
     @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
     public UserResponse registerUser(@RequestBody @Valid UserRequest userRequest) {
         return userService.registerUser(userRequest);
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<?> login(@RequestBody AuthenticationRequest authenticationRequest) {
-//        try {
-//            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-//                    authenticationRequest.getUsername(), authenticationRequest.getPassword()));
-//        } catch (BadCredentialsException e) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
-//        }
-//
-//        String jwtToken = jwtUtil.generateToken(authenticationRequest.getUsername());
-//        return ResponseEntity.ok(new AuthenticationResponse(jwtToken));
-//    }
+    @PostMapping("/login/jwt")
+    public AuthenticationResponse loginJwt(@RequestBody AuthenticationRequest authenticationRequest) {
+        return userService.authenticateAndGenerateJwtToken(authenticationRequest.getUsername(), authenticationRequest.getPassword());
+    }
 
     @PostMapping("/login")
     public String login(@RequestBody AuthenticationRequest authenticationRequest, HttpServletRequest request) throws Exception {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                authenticationRequest.getUsername(), authenticationRequest.getPassword());
-
-        Authentication authentication = authenticationManager.authenticate(token);
-
-        if (authentication.isAuthenticated()) {
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            HttpSession session = request.getSession(true);
-            session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
-            return "Login successful";
-        } else {
-            return "Login failed";
-        }
+        return userService.login(authenticationRequest.getUsername(), authenticationRequest.getPassword(), request);
     }
 
     @PostMapping("/logout")
     public String logout(HttpServletRequest request, HttpServletResponse response) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        SecurityContextHolder.clearContext();
-        return "Logout successful";
+        return userService.logout(request,response);
     }
 
     @PutMapping("/update")
@@ -82,6 +54,7 @@ public class UserController {
     }
 
     @PostMapping("/delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public String deleteUser(@RequestBody @Valid UserDeleteRequest userDeleteRequest,
                                              Authentication authentication,
                                              HttpServletRequest request, HttpServletResponse response) {
