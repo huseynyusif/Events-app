@@ -58,10 +58,10 @@ dependencies {
 	//implementation("com.vladmihalcea:hibernate-types-52:2.21.1")
 	//Hibernate
 	implementation("org.hibernate:hibernate-core:6.0.0.Final")
-
+	//amazon s3
+	implementation("com.amazonaws:aws-java-sdk-s3:1.12.470")
 	//persistence
 	//implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
-
 	// rabbitMQ
 //	implementation("org.springframework.boot:spring-boot-starter-amqp:1.4.0.RELEASE")
 

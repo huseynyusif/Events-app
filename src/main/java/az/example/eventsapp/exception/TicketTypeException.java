@@ -7,6 +7,6 @@ public class TicketTypeException extends GenericException{
     private static final String TICKET_TYPE = "Ticket type not found for this event";
 
     public TicketTypeException() {
-        super(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value(), TICKET_TYPE);
+        super(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.value(), TICKET_TYPE);
     }
 }

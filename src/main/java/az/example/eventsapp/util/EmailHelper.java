@@ -21,12 +21,10 @@ public class EmailHelper {
     private final JavaMailSender javaMailSender;
 
     public void sendTicketConfirmationEmail(String to, String subject, String body, List<byte[]> pdfAttachments) throws MessagingException {
-        log.info("Methoda girdi 24");
         MimeMessage message = javaMailSender.createMimeMessage();
         MimeMessageHelper helper;
 
         try {
-            log.info("Try icindedi 29");
             helper = new MimeMessageHelper(message, true);
             helper.setTo(to);
             helper.setSubject(subject);
@@ -37,7 +35,6 @@ public class EmailHelper {
                 helper.addAttachment("ticket" + (i + 1) + ".pdf", dataSource);
             }
         } catch (MessagingException e) {
-            log.info("40ci setr");
             e.printStackTrace();
         }
 
@@ -45,7 +42,6 @@ public class EmailHelper {
     }
 
     public void sendOtpEmail(String to, String otp) {
-        log.info("48ci setr");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject("Your OTP for Password Reset");
