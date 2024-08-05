@@ -5,6 +5,7 @@ import az.example.eventsapp.mapper.EventMapper;
 import az.example.eventsapp.response.EventResponse;
 import az.example.eventsapp.service.UserFavoriteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,7 @@ public class UserFavoriteController {
     }
 
     @PostMapping("/remove/{eventId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public String removeFavorite(@PathVariable Long eventId, Authentication authentication) {
         userFavoriteService.removeFavoriteEvent(eventId, authentication.getName());
         return "Event removed from favorites";

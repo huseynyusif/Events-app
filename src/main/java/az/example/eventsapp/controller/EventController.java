@@ -6,6 +6,7 @@ import az.example.eventsapp.response.EventCardResponse;
 import az.example.eventsapp.response.EventCriteria;
 import az.example.eventsapp.response.EventResponse;
 import az.example.eventsapp.service.EventService;
+import az.example.eventsapp.util.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +27,16 @@ import java.util.*;
 public class EventController {
 
     private final EventService eventService;
+    private final S3Service s3Service;
+
+    @PostMapping("/upload")
+    public String uploadFile(@RequestParam("file") MultipartFile file) {
+        return s3Service.uploadFile(file);
+    }
 
     @GetMapping("/hello")
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Hello Firuz");
+        return ResponseEntity.ok("Hello Render");
     }
 
     @PostMapping
@@ -51,6 +58,7 @@ public class EventController {
     }
 
     @PostMapping("/{eventId}/buy-tickets")
+    @ResponseStatus(HttpStatus.CREATED)
     public List<String> purchaseTicket(
             @PathVariable Long eventId,
             @RequestParam String type,
@@ -66,6 +74,7 @@ public class EventController {
 
 
     @GetMapping("/cards")
+    @ResponseStatus(HttpStatus.OK)
     public List<EventCardResponse> getEventCards() {
         return eventService.getEventCards();
     }
@@ -78,7 +87,6 @@ public class EventController {
 
     @GetMapping("/page/filter")
     public Page<EventCardResponse> filterEvents(
-            //extra all event lazim deyil
             @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable,
             @ModelAttribute EventCriteria eventCriteria) {
         return eventService.filterEvents(pageable, eventCriteria);

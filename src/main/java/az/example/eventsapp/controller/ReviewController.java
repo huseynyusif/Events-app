@@ -6,6 +6,7 @@ import az.example.eventsapp.response.ReviewResponse;
 import az.example.eventsapp.service.ReviewService;
 import az.example.eventsapp.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class ReviewController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ReviewResponse createReview(@RequestBody ReviewRequest reviewRequest,
                                        Authentication authentication
 //                                       @RequestHeader(value = "Authorization") String authorizationHeader){
@@ -47,6 +49,7 @@ public class ReviewController {
     }
 
     @DeleteMapping("/delete/{reviewId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     public String deleteReviewByAdmin(@PathVariable Long reviewId) {
         reviewService.deleteReviewByAdmin(reviewId);
@@ -54,6 +57,7 @@ public class ReviewController {
     }
 
     @DeleteMapping("/delete-user-review/{reviewId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteReviewByUser(@PathVariable Long reviewId, Authentication authentication) {
         if (authentication == null) {
             throw new UnauthorizedException();
