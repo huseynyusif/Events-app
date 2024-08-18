@@ -1,11 +1,10 @@
 package az.example.eventsapp.request;
 
-import az.example.eventsapp.constraint.Email;
+import az.example.eventsapp.constraint.CustomEmail;
 import az.example.eventsapp.constraint.Password;
 import az.example.eventsapp.constraint.TelephoneNumber;
 import az.example.eventsapp.constraint.Username;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,7 +25,7 @@ public class UserRequest {
     @TelephoneNumber
     private String telephoneNumber;
 
-    @Email
+    @CustomEmail
     private String email;
 
     @Username

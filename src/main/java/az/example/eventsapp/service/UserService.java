@@ -124,7 +124,7 @@ public class UserService {
 
         if (userRequest.getEmail() != null) {
             if (userRepository.existsByEmail(userRequest.getEmail())){
-                log.warn("Email already exists: {}", userRequest.getEmail());
+                log.warn("CustomEmail already exists: {}", userRequest.getEmail());
                 throw new EmailExistsException();
             }
             userEntity.setEmail(userRequest.getEmail());

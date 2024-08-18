@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2024-08-01T21:11:35+0400",
+    date = "2024-08-07T23:48:06+0400",
     comments = "version: 1.5.5.Final, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.8.jar, environment: Java 17.0.8 (Oracle Corporation)"
 )
 @Component
@@ -74,6 +74,10 @@ public class EventMapperImpl implements EventMapper {
         if ( organizer != null ) {
             eventEntity.setOrganizer( organizer );
             eventEntity.setStatus( userStatusToEventStatus( organizer.getStatus() ) );
+            Set<ReviewEntity> set = organizer.getReviews();
+            if ( set != null ) {
+                eventEntity.setReviews( new ArrayList<ReviewEntity>( set ) );
+            }
         }
         eventEntity.setCategory( category );
         eventEntity.setVenue( venue );

@@ -17,9 +17,8 @@ import static az.example.eventsapp.constant.ValidationMessageConstants.EMAIL_REG
 @Documented
 @NotBlank
 @Constraint(validatedBy = {UniqueEmailValidator.class})
-public @interface Email {
-    // change name customemail
-    String message() default "Email must be unique";
+public @interface CustomEmail {
+    String message() default "CustomEmail must be unique";
 
     Class<?>[] groups() default {};
 

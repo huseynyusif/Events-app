@@ -58,6 +58,9 @@ public class EventEntity {
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     private List<TicketEntity> tickets;
 
+    @OneToMany(mappedBy = "event")
+    private List<ReviewEntity> reviews;
+
     @ManyToMany
     @JoinTable(
             name = "user_favorite_events",

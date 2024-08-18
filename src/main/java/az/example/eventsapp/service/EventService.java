@@ -33,6 +33,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static az.example.eventsapp.specification.EventSpecification.isSortedByStarRating;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -262,12 +264,13 @@ public class EventService {
         // Apply sorting based on criteria
         if ("starRating".equals(eventCriteria.getSortBy())) {
             log.info("Applying star rating sorting");
-            spec = spec.and(EventSpecification.isSortedByStarRating());
+            spec = spec.and(isSortedByStarRating());
         } else if ("latestEvents".equals(eventCriteria.getSortBy())) {
             log.info("Applying latest events sorting");
             spec = spec.and(EventSpecification.isLatestEvents());
         }
 
+//        Page<EventEntity> events = eventRepository.findAll(Specification.where(isSortedByStarRating()), pageable);
         Page<EventEntity> events = eventRepository.findAll(spec, pageable);
         List<EventCardResponse> eventCardResponses = events.stream()
                 .map(eventMapper::toEventCardResponse)

@@ -2,7 +2,6 @@ package az.example.eventsapp.service;
 
 import az.example.eventsapp.entity.EventEntity;
 import az.example.eventsapp.entity.ImageEntity;
-import az.example.eventsapp.entity.ReviewEntity;
 import az.example.eventsapp.enums.EventStatus;
 import az.example.eventsapp.exception.EventNotFoundException;
 import az.example.eventsapp.mapper.EventMapper;
@@ -14,8 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
