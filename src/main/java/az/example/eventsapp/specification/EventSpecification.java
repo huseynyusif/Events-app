@@ -2,16 +2,15 @@ package az.example.eventsapp.specification;
 
 import az.example.eventsapp.entity.EventEntity;
 import az.example.eventsapp.entity.ReviewEntity;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
+import az.example.eventsapp.entity.TicketEntity;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class EventSpecification {
 
-    public static Specification<EventEntity> buildSpecification(String name, LocalDateTime startDateFrom, LocalDateTime startDateTo, BigDecimal minPrice, BigDecimal maxPrice,String venueName) {
+    public static Specification<EventEntity> buildSpecification(String name, LocalDateTime startDateFrom, LocalDateTime startDateTo, Double minPrice, Double maxPrice,String venueName) {
         Specification<EventEntity> spec = Specification.where(null);
 
         if (name != null && !name.isEmpty()) {
@@ -40,8 +39,17 @@ public class EventSpecification {
         return (root, query, criteriaBuilder) -> criteriaBuilder.between(root.get("startDate"), startDateFrom, startDateTo);
     }
 
-    public static Specification<EventEntity> hasPriceBetween(BigDecimal minPrice, BigDecimal maxPrice) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.between(root.join("tickets").get("price"), minPrice, maxPrice);
+    public static Specification<EventEntity> hasPriceBetween(Double minPrice, Double maxPrice) {
+        return (root, query, criteriaBuilder) -> {
+            // SubQuery to get the minimum price of tickets associated with the event
+            Subquery<Double> subquery = query.subquery(Double.class);
+            Root<TicketEntity> ticketRoot = subquery.from(TicketEntity.class);
+            subquery.select(criteriaBuilder.min(ticketRoot.get("price")))
+                    .where(criteriaBuilder.equal(ticketRoot.get("event"), root));
+
+            // Main query condition: check if the event has any ticket price within the specified range
+            return criteriaBuilder.between(subquery, minPrice, maxPrice);
+        };
     }
 
     public static Specification<EventEntity> hasVenueName(String venueName) {
@@ -50,12 +58,22 @@ public class EventSpecification {
 
     public static Specification<EventEntity> isSortedByStarRating() {
         return (root, query, criteriaBuilder) -> {
-            // join to the reviews collection
-            Join<EventEntity, ReviewEntity> reviewJoin = root.join("reviews", JoinType.LEFT);
+            // Check if we're fetching data and not just counting
+            if (query.getResultType() != Long.class) {
+                // Join to the reviews collection
+                Join<EventEntity, ReviewEntity> reviewJoin = root.join("reviews", JoinType.LEFT);
 
-            query.orderBy(criteriaBuilder.desc(criteriaBuilder.avg(reviewJoin.get("starRating"))));
+                // Calculate the average star rating
+                Expression<Double> averageRating = criteriaBuilder.avg(reviewJoin.get("starRating"));
 
-            return query.getRestriction();
+                // Group by event to ensure correct averaging
+                query.groupBy(root.get("id"));
+
+                // Order by average star rating descending
+                query.orderBy(criteriaBuilder.desc(averageRating));
+            }
+
+            return criteriaBuilder.conjunction();
         };
     }
 
